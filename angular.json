@@ -4,6 +4,70 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
+    "example-demo": {
+      "root": "example-demo",
+      "projectType": "application",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "example-dist",
+            "index": "example-demo/index.html",
+            "main": "example-demo/main.ts",
+            "tsConfig": "example-demo/tsconfig-demo.app.json",
+            "polyfills": "example-demo/polyfills.ts",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "example-demo/assets",
+                "output": "/assets"
+              },
+              {
+                "glob": "favicon.ico",
+                "input": "example-demo",
+                "output": "/"
+              }
+            ],
+            "styles": [
+              {
+                "input": "example-demo/styles.css"
+              }
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "extractCss": true,
+              "namedChunks": false,
+              "aot": true,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
+              "fileReplacements": [
+                {
+                  "src": "example-demo/environments/environment.ts",
+                  "replaceWith": "example-demo/environments/environment.prod.ts"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "example-demo:build"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "example-demo:build:production"
+            }
+          }
+        }
+      }
+    },
     "example-app": {
       "root": "example-app",
       "projectType": "application",
