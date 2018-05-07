@@ -14,7 +14,7 @@
             "outputPath": "example-dist",
             "index": "example-demo/index.html",
             "main": "example-demo/main.ts",
-            "tsConfig": "example-demo/tsconfig-demo.app.json",
+            "tsConfig": "example-demo/tsconfig.demo.json",
             "polyfills": "example-demo/polyfills.ts",
             "assets": [
               {
