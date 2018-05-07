@@ -6,10 +6,12 @@ import { Store, StoreModule } from '@ngrx/store';
 import {
   reducers,
   metaReducers,
-  State,
   layoutStateSelector,
   authLoginStateSelector,
-} from './app.reducers';
+  AppState,
+  OpenSidenav,
+  CloseSidenav,
+} from './app.store';
 import { MaterialModule } from './material.module';
 import { LayoutComponent } from './layout/layout.component';
 import { SidenavComponent } from './layout/sidenav.component';
@@ -18,7 +20,6 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NavItemComponent } from './layout/nav-item.component';
 import { Observable } from 'rxjs';
 import { select } from '@ngrx/store';
-import * as AppActions from './app.actions';
 
 @Component({
   selector: 'bc-app',
@@ -51,17 +52,17 @@ export class AppComponent {
   showSidenav$: Observable<boolean>;
   loggedIn$: Observable<boolean>;
 
-  constructor(private store: Store<State>) {
+  constructor(private store: Store<AppState>) {
     this.showSidenav$ = store.pipe(select(layoutStateSelector));
     this.loggedIn$ = store.pipe(select(authLoginStateSelector));
   }
 
   openSidenav() {
-    this.store.dispatch(new AppActions.OpenSidenav());
+    this.store.dispatch(new OpenSidenav());
   }
 
   closeSidenav() {
-    this.store.dispatch(new AppActions.CloseSidenav());
+    this.store.dispatch(new CloseSidenav());
   }
 }
 
