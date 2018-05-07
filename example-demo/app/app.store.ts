@@ -1,4 +1,3 @@
-import * as fromRouter from '@ngrx/router-store';
 import {
   Action,
   ActionReducer,
@@ -10,12 +9,20 @@ import {
 import { storeFreeze } from 'ngrx-store-freeze';
 import { environment } from '../environments/environment';
 
-import { Authenticate, User } from '../../example-app/app/auth/models/user';
-import { __extends } from 'tslib';
+import * as fromRouter from '@ngrx/router-store';
+import { Params } from '@angular/router';
 
 //***************************** AppState/Initializer *****************************//
+
+export interface RouterStateUrl {
+  url: string;
+  params: Params;
+  queryParams: Params;
+}
+
 export interface AppState {
   layout: LayoutState;
+  router: fromRouter.RouterReducerState<RouterStateUrl>;
 }
 
 export enum LayoutActionTypes {
@@ -36,7 +43,7 @@ export type LayoutActionsUnion = OpenSidenav | CloseSidenav;
 export function logger(
   reducer: ActionReducer<AppState>
 ): ActionReducer<AppState> {
-  return function(state: AppState, action: Action): AppState {
+  return function(state: AppState | undefined, action: Action): AppState {
     console.log('state', state);
     console.log('action', action);
 
@@ -46,6 +53,7 @@ export function logger(
 
 export const reducers: ActionReducerMap<AppState> = {
   layout: layoutReducer,
+  router: fromRouter.routerReducer,
 };
 
 export const metaReducers: MetaReducer<AppState>[] = !environment.production
@@ -56,24 +64,20 @@ export interface LayoutState {
   showSidenav: boolean;
 }
 
-const initialState: LayoutState = {
+const initialLayoutState: LayoutState = {
   showSidenav: false,
 };
 
 export function layoutReducer(
-  state: LayoutState = initialState,
+  state: LayoutState | undefined = initialLayoutState,
   action: LayoutActionsUnion
 ): LayoutState {
   switch (action.type) {
     case LayoutActionTypes.CloseSidenav:
-      return {
-        showSidenav: false,
-      };
+      return { showSidenav: false };
 
     case LayoutActionTypes.OpenSidenav:
-      return {
-        showSidenav: true,
-      };
+      return { showSidenav: true };
 
     default:
       return state;
@@ -89,22 +93,51 @@ export const layoutStateSelector = createSelector(
 //***************************** AppState *****************************//
 
 //***************************** AuthState *****************************//
+/**
+  {
+    auth: {
+      status: {
+        loggedIn: boolean,
+        user: {
+          name: string
+        }
+      },
+      loginPage: {
+        error: string,
+        pending: boolean
+      }
+    }
+  }
+ */
 export interface AppAuthState extends AppState {
-  auth: AuthState;
+  auth: AuthStatusLoginState;
 }
-
-export interface AuthState {
+export interface AuthStatusLoginState {
+  status: LoginUserState;
+  loginPage: LoginPageState;
+}
+export interface LoginPageState {
+  error: string | null;
+  pending: boolean;
+}
+export interface LoginUserState {
   loggedIn: boolean;
   user: User | null;
 }
-export interface AuthStatusState {
-  status: AuthState;
-  // loginPage: fromLoginPage.State;
-}
-export const initialAuthState: AuthState = {
+
+export const initialAuthState: LoginUserState = {
   loggedIn: false,
   user: null,
 };
+
+export interface Authenticate {
+  username: string;
+  password: string;
+}
+
+export interface User {
+  name: string;
+}
 
 export enum AuthActionTypes {
   Login = '[Auth] Login',
@@ -150,7 +183,7 @@ export type AuthActionsUnion =
 export function authReducer(
   state = initialAuthState,
   action: AuthActionsUnion
-): AuthState {
+): LoginUserState {
   switch (action.type) {
     case AuthActionTypes.LoginSuccess: {
       return {
@@ -170,13 +203,17 @@ export function authReducer(
   }
 }
 
+export const authFeatureSelector = createFeatureSelector<AuthStatusLoginState>(
+  'auth'
+);
+
 export const authStatusSelector = createSelector(
-  (state: AppAuthState) => state.auth,
-  (state: AuthStatusState) => state.status
+  authFeatureSelector,
+  (state: AuthStatusLoginState) => state.status
 );
 export const authLoginStateSelector = createSelector(
   authStatusSelector,
-  (state: AuthState) => state.loggedIn
+  (state: LoginUserState) => state.loggedIn
 );
 
 //***************************** AuthState *****************************//
