@@ -20,6 +20,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NavItemComponent } from './layout/nav-item.component';
 import { Observable } from 'rxjs';
 import { select } from '@ngrx/store';
+import { StoreRouterConnectingModule } from '../../modules/router-store/src';
+import { AuthGuard } from './auth/auth.service';
 
 @Component({
   selector: 'bc-app',
@@ -67,7 +69,12 @@ export class AppComponent {
 }
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/', pathMatch: 'full' },
+  { path: '', redirectTo: '/books', pathMatch: 'full' },
+  {
+    path: 'books',
+    loadChildren: './books/books.module#BooksModule',
+    canActivate: [AuthGuard],
+  },
   { path: '**', component: NotFoundPageComponent },
 ];
 
@@ -79,6 +86,10 @@ export const routes: Routes = [
 
     RouterModule.forRoot(routes),
     StoreModule.forRoot(reducers, { metaReducers }),
+
+    StoreRouterConnectingModule.forRoot({
+      stateKey: 'router',
+    }),
   ],
   declarations: [
     AppComponent,

@@ -10,7 +10,12 @@ import { storeFreeze } from 'ngrx-store-freeze';
 import { environment } from '../environments/environment';
 
 import * as fromRouter from '@ngrx/router-store';
-import { Params } from '@angular/router';
+import { Params, Router } from '@angular/router';
+import { Injectable } from '@angular/core';
+import { Actions, Effect, ofType } from '@ngrx/effects';
+import { catchError, exhaustMap, map, tap } from 'rxjs/operators';
+import { of } from 'rxjs/index';
+import { AuthService } from '../../example-app/app/auth/services/auth.service';
 
 //***************************** AppState/Initializer *****************************//
 
@@ -112,18 +117,42 @@ export const layoutStateSelector = createSelector(
 export interface AppAuthState extends AppState {
   auth: AuthStatusLoginState;
 }
+export const authStatusLoginSelector = createFeatureSelector<
+  AuthStatusLoginState
+>('auth');
+
 export interface AuthStatusLoginState {
   status: LoginUserState;
   loginPage: LoginPageState;
 }
+export const authStatusSelector = createSelector(
+  authStatusLoginSelector,
+  (state: AuthStatusLoginState) => state.status
+);
+export const authLoginPageSelector = createSelector(
+  authStatusLoginSelector,
+  (state: AuthStatusLoginState) => state.loginPage
+);
 export interface LoginPageState {
   error: string | null;
   pending: boolean;
 }
+export const authLoginPageErrorSelector = createSelector(
+  authLoginPageSelector,
+  (state: LoginPageState) => state.error
+);
+export const authLoginPagePendingSelector = createSelector(
+  authLoginPageSelector,
+  (state: LoginPageState) => state.pending
+);
 export interface LoginUserState {
   loggedIn: boolean;
   user: User | null;
 }
+export const authLoginSelector = createSelector(
+  authStatusSelector,
+  (state: LoginUserState) => state.loggedIn
+);
 
 export const initialAuthState: LoginUserState = {
   loggedIn: false,
@@ -180,7 +209,7 @@ export type AuthActionsUnion =
   | LoginRedirect
   | Logout;
 
-export function authReducer(
+export function authStatusReducer(
   state = initialAuthState,
   action: AuthActionsUnion
 ): LoginUserState {
@@ -202,18 +231,86 @@ export function authReducer(
     }
   }
 }
+export const initialLoginPageState: LoginPageState = {
+  error: null,
+  pending: false,
+};
+export function authLoginPageReducer(
+  state = initialLoginPageState,
+  action: AuthActionsUnion
+): LoginPageState {
+  switch (action.type) {
+    case AuthActionTypes.Login: {
+      return {
+        ...state,
+        error: null,
+        pending: true,
+      };
+    }
 
-export const authFeatureSelector = createFeatureSelector<AuthStatusLoginState>(
-  'auth'
-);
+    case AuthActionTypes.LoginSuccess: {
+      return {
+        ...state,
+        error: null,
+        pending: false,
+      };
+    }
 
-export const authStatusSelector = createSelector(
-  authFeatureSelector,
-  (state: AuthStatusLoginState) => state.status
-);
-export const authLoginStateSelector = createSelector(
-  authStatusSelector,
-  (state: LoginUserState) => state.loggedIn
-);
+    case AuthActionTypes.LoginFailure: {
+      return {
+        ...state,
+        error: action.payload,
+        pending: false,
+      };
+    }
 
+    default: {
+      return state;
+    }
+  }
+}
+export const authReducers: ActionReducerMap<LoginUserState> = {
+  status: authStatusReducer,
+  loginPage: authLoginPageReducer,
+};
 //***************************** AuthState *****************************//
+
+//***************************** AuthEffects *****************************//
+@Injectable()
+export class AuthEffects {
+  @Effect()
+  login$ = this.actions$.pipe(
+    ofType<Login>(AuthActionTypes.Login),
+    map(action => action.payload),
+    exhaustMap((auth: Authenticate) =>
+      this.authService
+        .login(auth)
+        .pipe(
+          map(user => new LoginSuccess({ user })),
+          catchError(error => of(new LoginFailure(error)))
+        )
+    )
+  );
+
+  @Effect({ dispatch: false })
+  loginSuccess$ = this.actions$.pipe(
+    ofType(AuthActionTypes.LoginSuccess),
+    tap(() => this.router.navigate(['/']))
+  );
+
+  @Effect({ dispatch: false })
+  loginRedirect$ = this.actions$.pipe(
+    ofType(AuthActionTypes.LoginRedirect, AuthActionTypes.Logout),
+    tap(authed => {
+      this.router.navigate(['/login']);
+    })
+  );
+
+  constructor(
+    private actions$: Actions,
+    private authService: AuthService,
+    private router: Router
+  ) {}
+}
+
+//***************************** AuthEffects *****************************//
